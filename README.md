@@ -11,4 +11,5 @@ Agent control panel lets you generate nix script verbally so you never need to c
 
 Everything is versioned, reversible, and testable
 
-based on https://github.com/elitak/nixos-infect
+init based on https://github.com/elitak/nixos-infect
+remote shell based on https://github.com/wuchihsu/go-ssh-web-client

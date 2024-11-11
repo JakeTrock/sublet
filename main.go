@@ -1,10 +1,17 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 )
+
+type config struct {
+	Host         string `toml:"host"`
+	Port         uint   `toml:"port"`
+	User         string `toml:"user"`
+	Password     string `toml:"password"`
+	IdentityFile string `toml:"identity_file"`
+}
 
 func main() {
 	http.HandleFunc("/initConfiguration", handleInitConfiguration)
@@ -16,84 +23,13 @@ func main() {
 	http.HandleFunc("/runSwitch", handleRunSwitch)
 	http.HandleFunc("/livenessCheck", handleLivenessCheck)
 
+	handler := &sshHandler{
+		addr:   "127.0.0.1",
+		user:   "root",            //TODO: do not use root
+		secret: "8s9f8ds9f9d8fds", //TODO: randomize, do not hardcode
+	}
+	http.HandleFunc("/ssh", handler.webSocket)
+
 	fmt.Println("Server started at :8080")
 	http.ListenAndServe(":8080", nil)
-}
-
-func handleInitConfiguration(w http.ResponseWriter, r *http.Request) {
-	err := initConfiguration()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-}
-
-func handleListNixFiles(w http.ResponseWriter, r *http.Request) {
-	files, err := listNixFiles()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	json.NewEncoder(w).Encode(files)
-}
-
-func handleGetNixFilesContents(w http.ResponseWriter, r *http.Request) {
-	contents, err := getNixFilesContents()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Write([]byte(contents))
-}
-
-func handleSetNixFilesContents(w http.ResponseWriter, r *http.Request) {
-	var files map[string]string
-	err := json.NewDecoder(r.Body).Decode(&files)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	err = setNixFilesContents(files)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-}
-
-func handleRunDryBuild(w http.ResponseWriter, r *http.Request) {
-	output, err := runDryBuild()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Write([]byte(output))
-}
-
-func handleRunTest(w http.ResponseWriter, r *http.Request) {
-	output, err := runTest()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Write([]byte(output))
-}
-
-func handleRunSwitch(w http.ResponseWriter, r *http.Request) {
-	output, err := runSwitch()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Write([]byte(output))
-}
-
-func handleLivenessCheck(w http.ResponseWriter, r *http.Request) {
-	output, err := livenessCheck()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Write([]byte(output))
 }

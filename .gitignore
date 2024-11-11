@@ -1,3 +1,4 @@
 .env
 build/
-secrets.go
+server/.env
+server/front/node_modules/*

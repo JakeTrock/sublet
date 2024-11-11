@@ -138,3 +138,16 @@ func runSwitch() (string, error) {
 	}
 	return string(output), nil
 }
+
+/*
+ * Liveness check
+ * gets cpu and memory usage
+ */
+func livenessCheck() (string, error) {
+	cmd := exec.Command("top", "-b", "-n", "1")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("error running top: %v, output: %s", err, string(output))
+	}
+	return string(output), nil
+}

@@ -22,6 +22,7 @@ func main() {
 	http.HandleFunc("/runTest", handleRunTest)
 	http.HandleFunc("/runSwitch", handleRunSwitch)
 	http.HandleFunc("/livenessCheck", handleLivenessCheck)
+	http.HandleFunc("/fetchLocalUrl", handleFetchLocalUrl)
 
 	handler := &sshHandler{
 		addr:   "127.0.0.1",

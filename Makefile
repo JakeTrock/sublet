@@ -1,6 +1,6 @@
 dev:
-	go run ./*.go
-
+	go run ./*.go --debug
+	source coordinator/venv/bin/activate && ./coordinator/venv/bin/python3 coordinator/main.py
 install:
 	# Install Go dependencies
 	go mod download

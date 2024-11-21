@@ -13,3 +13,4 @@ Everything is versioned, reversible, and testable
 
 init based on https://github.com/elitak/nixos-infect
 remote shell based on https://github.com/wuchihsu/go-ssh-web-client
+connecting peers with https://github.com/lithdew/flatend

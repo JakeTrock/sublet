@@ -2,3 +2,4 @@
 build/
 server/.env
 server/front/node_modules/*
+.DS_Store

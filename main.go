@@ -2,35 +2,38 @@ package main
 
 import (
 	"fmt"
-	"net/http"
+	"log"
+	"os"
+	"os/signal"
+
+	"github.com/lithdew/flatend"
 )
 
-type config struct {
-	Host         string `toml:"host"`
-	Port         uint   `toml:"port"`
-	User         string `toml:"user"`
-	Password     string `toml:"password"`
-	IdentityFile string `toml:"identity_file"`
-}
-
 func main() {
-	http.HandleFunc("/initConfiguration", handleInitConfiguration)
-	http.HandleFunc("/listNixFiles", handleListNixFiles)
-	http.HandleFunc("/getNixFilesContents", handleGetNixFilesContents)
-	http.HandleFunc("/setNixFilesContents", handleSetNixFilesContents)
-	http.HandleFunc("/runDryBuild", handleRunDryBuild)
-	http.HandleFunc("/runTest", handleRunTest)
-	http.HandleFunc("/runSwitch", handleRunSwitch)
-	http.HandleFunc("/livenessCheck", handleLivenessCheck)
-	http.HandleFunc("/fetchLocalUrl", handleFetchLocalUrl)
-
-	handler := &sshHandler{
-		addr:   "127.0.0.1",
-		user:   "root",            //TODO: do not use root
-		secret: "8s9f8ds9f9d8fds", //TODO: randomize, do not hardcode
+	// Create Flatend node
+	node := &flatend.Node{
+		Services: map[string]flatend.Handler{
+			"init_configuration": handleInitConfiguration,
+			"list_nix_files":     handleListNixFiles,
+			"get_nix_contents":   handleGetNixFilesContents,
+			"set_nix_contents":   handleSetNixFilesContents,
+			"run_dry_build":      handleRunDryBuild,
+			"run_test":           handleRunTest,
+			"run_switch":         handleRunSwitch,
+			"liveness_check":     handleLivenessCheck,
+			"fetch_local_url":    handleFetchLocalUrl,
+			"ssh":                handleSSHWebSocket,
+		},
 	}
-	http.HandleFunc("/ssh", handler.webSocket)
 
-	fmt.Println("Server started at :8080")
-	http.ListenAndServe(":8080", nil)
+	fmt.Println("Server started at :9000")
+	if err := node.Start("127.0.0.1:9000"); err != nil {
+		log.Fatalf("Server error: %v", err)
+	}
+
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+	<-ch
+
+	node.Shutdown()
 }

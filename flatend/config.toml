@@ -43,3 +43,7 @@ service = "fetch_local_url"
 path = "GET /ws/ssh"
 service = "ssh"
 websocket = true
+
+[[http.routes]]
+path = "GET /text"
+service = "text_liveness"

@@ -23,6 +23,7 @@ func main() {
 			"liveness_check":     handleLivenessCheck,
 			"fetch_local_url":    handleFetchLocalUrl,
 			"ssh":                handleSSHWebSocket,
+			"text_liveness":      textLiveness,
 		},
 	}
 

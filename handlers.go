@@ -215,6 +215,10 @@ func handleLivenessCheck(ctx *flatend.Context) {
 	writeJSON(ctx, map[string]interface{}{"output": output})
 }
 
+func textLiveness(ctx *flatend.Context) {
+	ctx.Write([]byte("Server is running"))
+}
+
 func handleFetchLocalUrl(ctx *flatend.Context) {
 	var req struct {
 		URL string `json:"url"`

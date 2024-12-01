@@ -1,5 +1,6 @@
-.env
-build/
-server/.env
-server/front/node_modules/*
+node_modules/
 .DS_Store
+client_id
+clients.db
+nixpkgs/
+TODO.md

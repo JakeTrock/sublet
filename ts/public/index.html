@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Message Sender</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .message-form {
+            margin-bottom: 20px;
+        }
+        .message-list {
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+        }
+        .message {
+            margin: 5px 0;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .system-message {
+            color: #666;
+            font-style: italic;
+        }
+        .timestamp {
+            font-size: 0.8em;
+            color: #666;
+        }
+        .capability-form {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+        
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .button-group button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .button-group button:hover {
+            background-color: #45a049;
+        }
+        
+        .error-message {
+            color: #ff0000;
+            font-style: italic;
+        }
+        
+        .file-upload-form {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+        
+        .file-inputs {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .file-input {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .file-input label {
+            font-weight: bold;
+        }
+        
+        .file-input-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .file-input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .filename-input {
+            width: 200px;
+            padding: 5px;
+        }
+        
+        .add-file-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .remove-file-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .message-input-group {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        
+        .client-selector {
+            min-width: 200px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .go-clients-list {
+            margin-top: 5px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .client-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            margin: 2px 0;
+            background: #f5f5f5;
+            border-radius: 3px;
+        }
+        
+        .client-checkbox:hover {
+            background: #eee;
+        }
+        
+        .client-checkbox input {
+            margin-right: 8px;
+        }
+        
+        .no-clients {
+            color: #666;
+            font-style: italic;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Message Sender</h1>
+    
+    <div class="capability-form">
+        <h2>NixOS Commands</h2>
+        <div class="button-group">
+            <button onclick="sendCommand('init')">Initialize</button>
+            <button onclick="sendCommand('list')">List Files</button>
+            <button onclick="sendCommand('get')">Get Contents</button>
+            <button onclick="sendCommand('dry-build')">Dry Build</button>
+            <button onclick="sendCommand('test')">Test</button>
+            <button onclick="sendCommand('switch')">Switch</button>
+            <button onclick="sendCommand('liveness')">Check Status</button>
+            <button onclick="sendCommand('shutdown')">Shutdown</button>
+        </div>
+    </div>
+
+    <div class="file-upload-form">
+        <h2>Upload NixOS Files</h2>
+        <form id="fileUploadForm">
+            <div class="file-inputs" id="fileInputs">
+                <div class="file-input">
+                    <div class="file-input-header">
+                        <label>NixOS Configuration File:</label>
+                        <button type="button" class="add-file-btn" onclick="addFileInput()">+ Add Another File</button>
+                    </div>
+                    <div class="file-input-row">
+                        <input type="text" placeholder="filename.nix" class="filename-input">
+                        <input type="file" accept=".nix" class="file-select">
+                        <button type="button" class="remove-file-btn" onclick="removeFileInput(this)">Remove</button>
+                    </div>
+                </div>
+            </div>
+            <button type="submit">Upload and Set Files</button>
+        </form>
+    </div>
+
+    <div class="message-form">
+        <h2>Send Message</h2>
+        <form id="messageForm">
+            <div class="message-input-group">
+                <input type="text" id="messageInput" placeholder="Enter your message" required>
+                <div class="client-selector">
+                    <label>Go Clients(check to exclude):</label>
+                    <div id="goClientsList" class="go-clients-list">
+                        <div class="no-clients">No Go clients connected</div>
+                    </div>
+                </div>
+            </div>
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    <div class="message-list" id="messageList">
+        <!-- Messages will be inserted here -->
+    </div>
+
+    <script>
+        const messageForm = document.getElementById('messageForm');
+        const messageInput = document.getElementById('messageInput');
+        const messageList = document.getElementById('messageList');
+        let clientId = localStorage.getItem('clientId');
+        let ws;
+        let goClients = [];
+        let clientsRefreshInterval;
+
+        // Add function to fetch clients
+        async function fetchClients() {
+            try {
+                const response = await fetch('/clients');
+                const clients = await response.json();
+                const goClientsList = clients
+                    .filter(client => client.client_type === 'go')
+                    .map(client => client.id);
+                updateGoClientsList(goClientsList);
+            } catch (error) {
+                console.error('Error fetching clients:', error);
+            }
+        }
+
+        function startClientsRefresh() {
+            // Initial fetch
+            fetchClients();
+            // Set up periodic refresh every 5 seconds
+            clientsRefreshInterval = setInterval(fetchClients, 5000);
+        }
+
+        function stopClientsRefresh() {
+            if (clientsRefreshInterval) {
+                clearInterval(clientsRefreshInterval);
+                clientsRefreshInterval = null;
+            }
+        }
+
+        function connectWebSocket() {
+            ws = new WebSocket('ws://' + window.location.host + '/ws');
+            
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                addMessage({ type: 'system', message: 'Connected to server' });
+                
+                if (clientId) {
+                    ws.send(JSON.stringify({
+                        type: 'register',
+                        id: clientId
+                    }));
+                }
+                // Start clients refresh when connected
+                startClientsRefresh();
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                addMessage({ type: 'system', message: 'Disconnected from server' });
+                // Stop clients refresh when disconnected
+                stopClientsRefresh();
+                setTimeout(connectWebSocket, 3000);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                addMessage({ type: 'error', message: 'WebSocket connection error' });
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'system') {
+                    if (data.id && !clientId) {
+                        clientId = data.id;
+                        localStorage.setItem('clientId', clientId);
+                        ws.send(JSON.stringify({
+                            type: 'register',
+                            id: clientId
+                        }));
+                    }
+                }
+                
+                addMessage(data);
+            };
+        }
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            stopClientsRefresh();
+        });
+
+        // Start the initial connection
+        connectWebSocket();
+
+        function addMessage(data) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${data.type === 'system' ? 'system-message' : ''} ${data.type === 'error' ? 'error-message' : ''}`;
+            
+            const timestamp = data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+            
+            let messageContent = data.message;
+            if (data.command) {
+                messageContent = `[${data.command}] ${messageContent}`;
+                
+                // Special handling for file contents
+                if (data.command === 'get' && data.message) {
+                    messageContent += '<pre>' + data.message + '</pre>';
+                }
+            }
+            
+            messageDiv.innerHTML = `
+                <span class="timestamp">[${timestamp}]</span>
+                ${messageContent}
+            `;
+            
+            messageList.appendChild(messageDiv);
+            messageList.scrollTop = messageList.scrollHeight;
+        }
+
+        messageForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            
+            if (!message) return;
+
+            try {
+                // Get excluded clients
+                const excludedClients = Array.from(
+                    document.querySelectorAll('#goClientsList input:checked')
+                ).map(cb => cb.value);
+
+                ws.send(JSON.stringify({
+                    type: 'message',
+                    message: message,
+                    id: clientId,
+                    excludedClients: excludedClients.length > 0 ? excludedClients : undefined
+                }));
+
+                messageInput.value = '';
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage({ type: 'error', message: 'Error sending message' });
+            }
+        };
+
+        // Add file upload handling
+        const fileUploadForm = document.getElementById('fileUploadForm');
+        
+        function addFileInput() {
+            const fileInputs = document.getElementById('fileInputs');
+            const newFileInput = document.createElement('div');
+            newFileInput.className = 'file-input';
+            newFileInput.innerHTML = `
+                <div class="file-input-row">
+                    <input type="text" placeholder="filename.nix" class="filename-input">
+                    <input type="file" accept=".nix" class="file-select">
+                    <button type="button" class="remove-file-btn" onclick="removeFileInput(this)">Remove</button>
+                </div>
+            `;
+            fileInputs.appendChild(newFileInput);
+        }
+
+        function removeFileInput(button) {
+            const fileInput = button.closest('.file-input');
+            if (document.querySelectorAll('.file-input').length > 1) {
+                fileInput.remove();
+            }
+        }
+
+        fileUploadForm.onsubmit = async (e) => {
+            e.preventDefault();
+            
+            const fileInputs = document.querySelectorAll('.file-input');
+            const files = {};
+            
+            try {
+                for (const input of fileInputs) {
+                    const fileSelect = input.querySelector('.file-select');
+                    const filenameInput = input.querySelector('.filename-input');
+                    const file = fileSelect.files[0];
+                    
+                    if (file) {
+                        let filename = filenameInput.value.trim();
+                        if (!filename) {
+                            filename = file.name;
+                        }
+                        if (!filename.endsWith('.nix')) {
+                            filename += '.nix';
+                        }
+                        
+                        files[filename] = await file.text();
+                    }
+                }
+                
+                if (Object.keys(files).length === 0) {
+                    addMessage({ type: 'error', message: 'Please select at least one file to upload' });
+                    return;
+                }
+                
+                // Send files via WebSocket
+                ws.send(JSON.stringify({
+                    type: 'command',
+                    command: 'set',
+                    files: files,
+                    id: clientId
+                }));
+                
+                // Clear form
+                fileUploadForm.reset();
+                
+                addMessage({ 
+                    type: 'system', 
+                    message: 'Files uploaded and sent for processing' 
+                });
+                
+            } catch (error) {
+                console.error('Error processing files:', error);
+                addMessage({ 
+                    type: 'error', 
+                    message: 'Error processing files: ' + error.message 
+                });
+            }
+        };
+
+        // Modify sendCommand to handle file responses
+        function sendCommand(command) {
+            if (ws.readyState === WebSocket.OPEN) {
+                if (command === 'get') {
+                    // Handle get response specially to display file contents nicely
+                    ws.send(JSON.stringify({
+                        type: 'command',
+                        command: command,
+                        id: clientId
+                    }));
+                } else {
+                    ws.send(JSON.stringify({
+                        type: 'command',
+                        command: command,
+                        id: clientId
+                    }));
+                }
+            } else {
+                addMessage({ type: 'error', message: 'WebSocket is not connected' });
+            }
+        }
+
+        function updateGoClientsList(clients) {
+            goClients = clients;
+            const container = document.getElementById('goClientsList');
+            
+            if (clients.length === 0) {
+                container.innerHTML = '<div class="no-clients">No Go clients connected</div>';
+                return;
+            }
+            
+            container.innerHTML = clients.map(id => `
+                <label class="client-checkbox">
+                    <input type="checkbox" value="${id}">
+                    <span title="${id}">${id.substring(0, 8)}...</span>
+                </label>
+            `).join('');
+        }
+
+        function removeGoClient(clientId) {
+            goClients = goClients.filter(id => id !== clientId);
+            updateGoClientsList(goClients);
+        }
+    </script>
+</body>
+</html> 

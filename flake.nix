@@ -47,7 +47,7 @@
 
           config = lib.mkIf cfg.enable {
             systemd.services.sublet-server = {
-              description = "Sublet Go Server";
+            #   description = "Sublet Go Server";
               wantedBy = [ "multi-user.target" ];
               after = [ "network.target" ];
 

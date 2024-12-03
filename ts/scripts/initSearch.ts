@@ -7,12 +7,6 @@ const exec = promisify(execCallback);
 
 const channels = ["nixos-23.05", "nixos-23.11", "nixos-24.05", "nixos-unstable"];
 
-// using https://github.com/diamondburned/nix-search?tab=readme-ov-file
-async function make_index() {
-	await exec(`nix-search --index`);
-	return;
-}
-
 async function get_options(channel: string) {
 	const { stdout } = await exec(`nix-build '<nixpkgs/nixos/release.nix>' --no-out-link -A options -I nixpkgs=channel:${channel}`);
 	const out_path = (await stdout).trim();
@@ -77,5 +71,3 @@ channels.forEach(channel => {
 		db.close();
 	});
 });
-
-make_index();

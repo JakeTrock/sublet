@@ -1,5 +1,5 @@
 {
-  description = "Sublet Go Server";
+#   description = "Sublet Go Server";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";

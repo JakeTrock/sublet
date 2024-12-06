@@ -1,4 +1,4 @@
-module libdb.so/nix-search
+module libdb.so/subletd
 
 go 1.23
 

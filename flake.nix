@@ -1,104 +1,49 @@
-# {
-# #   description = "Sublet Go Server";
+{
+	inputs = {
+		nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+		flake-utils.url = "github:numtide/flake-utils";
+		flake-compat.url = "https://flakehub.com/f/edolstra/flake-compat/1.tar.gz";
+	};
 
-#   inputs = {
-#     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
-#     flake-utils.url = "github:numtide/flake-utils";
-#   };
+	outputs = { self, nixpkgs, flake-utils, ... }: flake-utils.lib.eachDefaultSystem (system:
+		let
+			pkgs = nixpkgs.legacyPackages.${system};
+		in
+		{
+			devShells.default = pkgs.mkShell {
+				packages = with pkgs; [
+					go_1_23
+					gopls
+					gotools
+					# sqlc
+				];
+			};
 
-#   outputs = { self, nixpkgs, flake-utils }:
-#     flake-utils.lib.eachDefaultSystem (system:
-#       let
-#         pkgs = nixpkgs.legacyPackages.${system};
-#       in
-#       {
-#         packages.default = pkgs.buildGoModule {
-#           pname = "sublet-server";
-#           version = "0.1.0";
-#           src = ./go;  # Directory containing main.go and other Go files
+			packages.default = pkgs.buildGoModule {
+				pname = "nix-search";
+				version = self.rev or "unknown";
+				src = self;
 
-#           vendorHash = null;  # Will be replaced with actual hash on first build
-#         };
+				vendorHash = null;#pkgs.lib.fakeHash;
 
-#         # Development shell with required dependencies
-#         devShells.default = pkgs.mkShell {
-#           buildInputs = with pkgs; [
-#             go
-#             gopls
-#             gotools
-#           ];
-#         };
-#       }
-#     ) // {
-#       # NixOS module for the systemd service
-#       nixosModules.default = { config, lib, pkgs, ... }:
-#         let
-#           cfg = config.services.sublet-server;
-#         in
-#         {
-#           options.services.sublet-server = {
-#             enable = lib.mkEnableOption "Sublet Go server";
-#             port = lib.mkOption {
-#               type = lib.types.port;
-#               default = 8020;
-#               description = "Port to listen on";
-#             };
-#           };
+				meta = with pkgs.lib; {
+					description = "A better and channel-compatible `nix search` for NixOS using only stable Nix tools.";
+					homepage = "https://github.com/jaketrock/sublet";
+					mainProgram = "subletd";
+				};
+			};
 
-#           config = lib.mkIf cfg.enable {
-#             systemd.services.sublet-server = {
-#             #   description = "Sublet Go Server";
-#               wantedBy = [ "multi-user.target" ];
-#               after = [ "network.target" ];
-
-#               serviceConfig = {
-#                 ExecStart = "${self.packages.${pkgs.system}.default}/bin/sublet-server";
-#                 Restart = "always";
-#                 RestartSec = "10";
-#                 Type = "simple";
-#                 User = "sublet";
-#                 Group = "sublet";
-#                 WorkingDirectory = "/var/lib/sublet";
-
-#                 # Hardening options
-#                 NoNewPrivileges = true;
-#                 ProtectSystem = "strict";
-#                 ProtectHome = true;
-#                 PrivateTmp = true;
-#                 PrivateDevices = true;
-#                 ProtectClock = true;
-#                 ProtectProc = "invisible";
-#                 ProtectKernelTunables = true;
-#                 ProtectKernelModules = true;
-#                 ProtectKernelLogs = true;
-#                 ProtectControlGroups = true;
-#                 RestrictAddressFamilies = [ "AF_INET" "AF_INET6" ];
-#                 RestrictNamespaces = true;
-#                 LockPersonality = true;
-#                 MemoryDenyWriteExecute = true;
-#                 RestrictRealtime = true;
-#                 RestrictSUIDSGID = true;
-#                 RemoveIPC = true;
-#                 PrivateUsers = true;
-#                 SystemCallArchitectures = "native";
-#               };
-#             };
-
-#             # Create user and group
-#             users.users.sublet = {
-#               isSystemUser = true;
-#               group = "sublet";
-#               home = "/var/lib/sublet";
-#               createHome = true;
-#             };
-
-#             users.groups.sublet = {};
-#           };
-#         };
-#     };
-# } 
-
-{pkgs, ...}: {
-  # set ssh banner to hello world
-  services.openssh.banner = "o_o7";
+			apps = rec {
+				default = nix-search;
+				nix-search = {
+					type = "app";
+					program = "${self.packages.${system}.default}/bin/nix-search";
+				};
+				nix-dump-index = {
+					type = "app";
+					program = "${self.packages.${system}.default}/bin/nix-dump-index";
+				};
+			};
+		}
+	);
 }

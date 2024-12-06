@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gorilla/websocket"
+	"golang.org/x/net/websocket"
 )
 
 // Message represents the WebSocket message structure
@@ -115,7 +115,6 @@ func main() {
 		clientID = strings.TrimSpace(string(existingID))
 		log.Printf("Using existing client ID: %s", clientID)
 	} else {
-		// Save new ID to file
 		if err := os.WriteFile("client_id", []byte(clientID), 0644); err != nil {
 			log.Fatal("Error saving client ID:", err)
 		}
@@ -124,13 +123,12 @@ func main() {
 
 	// Connect to WebSocket server
 	u := url.URL{Scheme: "ws", Host: "localhost:8020", Path: "/ws"}
-	log.Printf("Connecting to %s", u.String())
-
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	origin := "http://localhost/"
+	ws, err := websocket.Dial(u.String(), "", origin)
 	if err != nil {
 		log.Fatal("Dial error:", err)
 	}
-	defer c.Close()
+	defer ws.Close()
 
 	// Set up channels
 	interrupt := make(chan os.Signal, 1)
@@ -138,11 +136,11 @@ func main() {
 	done := make(chan struct{})
 
 	// Wait for initial system message
-	_, rawMessage, err := c.ReadMessage()
-	if err != nil {
+	var initialMsg string
+	if err := websocket.Message.Receive(ws, &initialMsg); err != nil {
 		log.Fatal("Initial message error:", err)
 	}
-	log.Printf("Received initial message: %s", rawMessage)
+	log.Printf("Received initial message: %s", initialMsg)
 
 	// Send registration immediately
 	registration := Message{
@@ -150,7 +148,7 @@ func main() {
 		ID:   clientID,
 	}
 	registrationJSON, _ := json.Marshal(registration)
-	if err := c.WriteMessage(websocket.TextMessage, registrationJSON); err != nil {
+	if err := websocket.Message.Send(ws, string(registrationJSON)); err != nil {
 		log.Fatal("Registration error:", err)
 	}
 
@@ -158,14 +156,14 @@ func main() {
 	go func() {
 		defer close(done)
 		for {
-			_, rawMessage, err := c.ReadMessage()
-			if err != nil {
+			var rawMessage string
+			if err := websocket.Message.Receive(ws, &rawMessage); err != nil {
 				log.Println("Read error:", err)
 				return
 			}
 
 			var message Message
-			if err := json.Unmarshal(rawMessage, &message); err != nil {
+			if err := json.Unmarshal([]byte(rawMessage), &message); err != nil {
 				log.Printf("JSON parse error: %v", err)
 				continue
 			}
@@ -196,7 +194,7 @@ func main() {
 					continue
 				}
 
-				if err := c.WriteMessage(websocket.TextMessage, responseJSON); err != nil {
+				if err := websocket.Message.Send(ws, string(responseJSON)); err != nil {
 					log.Printf("Error sending response: %v", err)
 				}
 			}
@@ -210,14 +208,7 @@ func main() {
 			return
 		case <-interrupt:
 			log.Println("Interrupt received, shutting down...")
-			err := c.WriteMessage(
-				websocket.CloseMessage,
-				websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
-			)
-			if err != nil {
-				log.Println("Close error:", err)
-				return
-			}
+			ws.Close()
 			select {
 			case <-done:
 			case <-time.After(time.Second):

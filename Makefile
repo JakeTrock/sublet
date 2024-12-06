@@ -14,6 +14,12 @@ startws:
 
 start: startws startgo
 
+nixbld:
+	nix build --extra-experimental-features nix-command --extra-experimental-features flakes
+
+build-docker:
+	docker build -f .devcontainer/Dockerfile .
+
 clean:
 	rm -rf ts/node_modules
 	rm -rf ts/dist

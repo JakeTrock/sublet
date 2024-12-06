@@ -4,4 +4,4 @@ client_id
 clients.db
 nixpkgs/
 TODO.md
-result/*
+result/**/*

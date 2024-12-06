@@ -15,7 +15,7 @@ startws:
 start: startws startgo
 
 nixbld:
-	nix build --extra-experimental-features nix-command --extra-experimental-features flakes
+	nix build
 
 build-docker:
 	docker build -f .devcontainer/Dockerfile .
@@ -23,9 +23,9 @@ build-docker:
 clean:
 	rm -rf ts/node_modules
 	rm -rf ts/dist
-	rm -rf ts/public
 	rm -rf ts/clients.db
 	rm -rf go/client_id
+	rm -rf result
 
 # if you are running asdf you can run `asdf reshim go` to update the go path
 # https://pkg.go.dev/gitlab.com/hmajid2301/optinix#section-readme

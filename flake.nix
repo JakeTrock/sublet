@@ -43,6 +43,24 @@
 					program = "${self.packages.${system}.default}/bin/subletd";
 				};
 			};
+
+			nixosModules = {
+				systemd-go-service = { config, pkgs, lib, ... }: {
+					options.services.go-service = lib.mkEnableOption "Go service";
+
+					config = lib.mkIf config.services.go-service.enable {
+					systemd.services.go-service = {
+						description = "sublet daemon";
+						after = [ "network.target" ];
+						wantedBy = [ "multi-user.target" ];
+						serviceConfig = {
+							ExecStart = "${self.packages.${system}.default}/bin/subletd";
+							Restart = "always";
+						};
+					};
+					};
+				};
+			};
 		}
 	);
 }

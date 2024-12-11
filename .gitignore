@@ -5,3 +5,4 @@ clients.db
 nixpkgs/
 TODO.md
 result/**/*
+result

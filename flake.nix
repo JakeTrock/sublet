@@ -3,9 +3,10 @@
 		nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
 		flake-utils.url = "github:numtide/flake-utils";
 		flake-compat.url = "https://flakehub.com/f/edolstra/flake-compat/1.tar.gz";
+		nix-search.url = "github:diamondburned/nix-search";
 	};
 
-	outputs = { self, nixpkgs, flake-utils, ... }: flake-utils.lib.eachDefaultSystem (system:
+	outputs = { self, nixpkgs, flake-utils, nix-search, ... }: flake-utils.lib.eachDefaultSystem (system:
 		let
 			pkgs = nixpkgs.legacyPackages.${system};
 		in
@@ -16,6 +17,7 @@
 					gopls
 					gotools
 					# sqlc
+					nix-search.packages.${system}.default
 				];
 			};
 

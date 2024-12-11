@@ -45,11 +45,11 @@
 			};
 
 			nixosModules = {
-				systemd-go-service = { config, pkgs, lib, ... }: {
-					options.services.go-service = lib.mkEnableOption "Go service";
+				systemd-subletd = { config, pkgs, lib, ... }: {
+					options.services.subletd = lib.mkEnableOption "sublet daemon";
 
-					config = lib.mkIf config.services.go-service.enable {
-					systemd.services.go-service = {
+					config = lib.mkIf config.services.subletd.enable {
+					systemd.services.subletd = {
 						description = "sublet daemon";
 						after = [ "network.target" ];
 						wantedBy = [ "multi-user.target" ];

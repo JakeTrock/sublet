@@ -73,14 +73,14 @@
       "locked": {
         "lastModified": 1730410509,
         "narHash": "sha256-dOdcXKfSwi0THOjtgP3O/46SWoUY+T7LL9nGwOXXJfw=",
-        "owner": "jaketrock",
-        "repo": "sublet",
+        "owner": "diamondburned",
+        "repo": "nix-search",
         "rev": "868420cf077bc542f42db3e51b3bd87f3397d5d7",
         "type": "github"
       },
       "original": {
-        "owner": "jaketrock",
-        "repo": "sublet",
+        "owner": "diamondburned",
+        "repo": "nix-search",
         "type": "github"
       }
     },

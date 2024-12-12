@@ -1,7 +1,7 @@
 { config, pkgs, ... }:
 
 let
-  nix-search = import (pkgs.fetchFromGitHub {
+  sublet = import (pkgs.fetchFromGitHub {
     owner = "jaketrock";
     repo = "sublet";
     # You'll need to replace these with the latest values
@@ -12,7 +12,7 @@ in
 {
   environment.systemPackages = [
     # existing packages...
-    nix-search
+    sublet
   ];
 
   imports = [

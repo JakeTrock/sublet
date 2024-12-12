@@ -3,7 +3,7 @@
 		nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
 		flake-utils.url = "github:numtide/flake-utils";
 		flake-compat.url = "https://flakehub.com/f/edolstra/flake-compat/1.tar.gz";
-		nix-search.url = "github:jaketrock/sublet";
+		nix-search.url = "github:diamondburned/nix-search";
 	};
 
 	outputs = { self, nixpkgs, flake-utils, nix-search, ... }:

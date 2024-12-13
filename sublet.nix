@@ -3,11 +3,11 @@
 with lib;
 
 {
-  options.services.helloworld = {
+  options.services.subletd = {
     enable = mkOption {
       type = types.bool;
       default = false;
-      description = "Whether to enable the HelloWorld service.";
+      description = "Whether to enable the subletd service.";
     };
 
     helloTo = mkOption {
@@ -17,12 +17,12 @@ with lib;
     };
   };
 
-  config = mkIf config.services.helloworld.enable {
-    systemd.services.helloworld = {
+  config = mkIf config.services.subletd.enable {
+    systemd.services.subletd = {
       description = "A service that prints a custom hello message";
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
-        ExecStart = "${pkgs.coreutils}/bin/echo Hello, ${config.services.helloworld.helloTo}!";
+        ExecStart = "${pkgs.coreutils}/bin/echo Hello, ${config.services.subletd.helloTo}!";
       };
     };
   };
@@ -43,6 +43,6 @@ with lib;
 # 						mainProgram = "sublet";
 # 					};
 # 				};
-}
+# }
 
 # https://mtlynch.io/notes/nix-import-from-url/

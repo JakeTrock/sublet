@@ -130,8 +130,7 @@ func main() {
 
 	// Connect to WebSocket server
 	u := url.URL{Scheme: "ws", Host: hostURL, Path: "/ws"}
-	origin := fmt.Sprintf("http://%s/", hostURL)
-	ws, err := websocket.Dial(u.String(), "", origin)
+	ws, err := websocket.Dial(u.String(), "", hostURL)
 	if err != nil {
 		log.Fatal("Dial error:", err)
 	}

@@ -1,5 +1,5 @@
 install:
-	cd go && go mod tidy
+	cd subletd && go mod tidy
 	cd ts/scripts/ && go mod tidy
 	cd ts && npm install --legacy-peer-deps
 
@@ -7,7 +7,7 @@ build-ts:
 	cd ts && npm run build
 
 startgo:
-	(cd go && go run *.go)
+	(cd subletd && go run *.go)
 
 startws:
 	(cd ts && npm run dev)

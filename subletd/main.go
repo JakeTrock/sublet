@@ -1,8 +1,6 @@
 package main
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -100,30 +98,39 @@ func handleCapabilityCommand(command string, files map[string]string) (string, e
 }
 
 // Generate unique ID
-func generateID() string {
-	bytes := make([]byte, 16)
-	if _, err := rand.Read(bytes); err != nil {
-		log.Fatal(err)
-	}
-	return hex.EncodeToString(bytes)
-}
+// func generateID() string {
+// 	bytes := make([]byte, 16)
+// 	if _, err := rand.Read(bytes); err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	return hex.EncodeToString(bytes)
+// }
 
 func main() {
-	// Generate or load client ID first
-	clientID := generateID()
-	if existingID, err := os.ReadFile("client_id"); err == nil {
-		clientID = strings.TrimSpace(string(existingID))
-		log.Printf("Using existing client ID: %s", clientID)
-	} else {
-		if err := os.WriteFile("client_id", []byte(clientID), 0644); err != nil {
-			log.Fatal("Error saving client ID:", err)
-		}
-		log.Printf("Generated new client ID: %s", clientID)
+	if len(os.Args) < 3 {
+		log.Fatal("Error: Usage: subletd <host_url> <client_id>")
 	}
 
+	hostURL := strings.TrimSpace(os.Args[1])
+	if hostURL == "" {
+		log.Fatal("Error: Host URL cannot be empty")
+	}
+
+	clientID := strings.TrimSpace(os.Args[2])
+	if clientID == "" {
+		log.Fatal("Error: Client ID cannot be empty")
+	}
+	// ensure clientID is a valid UUID(length of 32)
+	if len(clientID) != 32 {
+		log.Fatal("Error: Client ID must be a valid UUID")
+	}
+
+	log.Printf("Using host URL: %s", hostURL)
+	log.Printf("Using client ID: %s", clientID)
+
 	// Connect to WebSocket server
-	u := url.URL{Scheme: "ws", Host: "localhost:8020", Path: "/ws"}
-	origin := "http://localhost/"
+	u := url.URL{Scheme: "ws", Host: hostURL, Path: "/ws"}
+	origin := fmt.Sprintf("http://%s/", hostURL)
 	ws, err := websocket.Dial(u.String(), "", origin)
 	if err != nil {
 		log.Fatal("Dial error:", err)

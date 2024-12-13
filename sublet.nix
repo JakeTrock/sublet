@@ -14,11 +14,6 @@ let
         "-w"
       ];
 
-      # installPhase = ''
-      #   mkdir -p $out/bin
-      #   cp $GOPATH/bin/sublet $out/bin/
-      # '';
-
       meta = with pkgs.lib; {
         description = "an LLM interface for NixOS";
         homepage = "https://github.com/jaketrock/sublet";
@@ -34,6 +29,12 @@ in
       description = "Whether to enable the subletd service.";
     };
 
+    hostUrl = mkOption {
+      type = types.str;
+      default = "http://159.65.35.90:8020";
+      description = "The URL of the host to connect to";
+    };
+
     userId = mkOption {
       type = types.str;
       default = "sublet";
@@ -46,7 +47,7 @@ in
       description = "A service that runs the sublet daemon";
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
-        ExecStart = "${sublet-go} ${config.services.subletd.userId}";
+        ExecStart = "${sublet-go}/bin/subletd ${config.services.subletd.hostUrl} ${config.services.subletd.userId}";
         Type = "simple";
         Restart = "always";
         RestartSec = "10";

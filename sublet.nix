@@ -30,8 +30,8 @@ with lib;
     environment.systemPackages = [ pkgs.sublet-go ];
   };
 
-  # Define the package outside of the config block
-  nixpkgs.overlays = [
+  # Move the overlay definition into the config attribute
+  config.nixpkgs.overlays = [
     (self: super: {
       sublet-go = super.buildGoModule {
         pname = "sublet";

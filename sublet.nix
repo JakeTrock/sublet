@@ -28,23 +28,27 @@ with lib;
 
     # Package the Go program
     environment.systemPackages = [ pkgs.sublet-go ];
-
-    # Move the package definition inside config
-    nixpkgs.packages.sublet-go = pkgs.buildGoModule {
-      pname = "sublet";
-      version = "0.1.0";
-      src = ./.;
-
-      vendorHash = "sha256-ms8G6uXrp32zzE4fYfEqlo9Exfp2DnwUsq+BCyasJRg=";
-      goDeps = ./go.mod;
-
-      meta = with pkgs.lib; {
-        description = "an LLM interface for NixOS";
-        homepage = "https://github.com/jaketrock/sublet";
-        mainProgram = "sublet";
-      };
-    };
   };
+
+  # Define the package outside of the config block
+  nixpkgs.overlays = [
+    (self: super: {
+      sublet-go = super.buildGoModule {
+        pname = "sublet";
+        version = "0.1.0";
+        src = ./.;
+
+        vendorHash = "sha256-ms8G6uXrp32zzE4fYfEqlo9Exfp2DnwUsq+BCyasJRg=";
+        goDeps = ./go.mod;
+
+        meta = with pkgs.lib; {
+          description = "an LLM interface for NixOS";
+          homepage = "https://github.com/jaketrock/sublet";
+          mainProgram = "sublet";
+        };
+      };
+    })
+  ];
 }
 
 # https://mtlynch.io/notes/nix-import-from-url/

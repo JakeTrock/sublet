@@ -17,32 +17,31 @@ with lib;
     };
   };
 
-  packages.sublet-go = pkgs.buildGoModule {
-    pname = "sublet";
-    version = self.rev or "unknown";
-    src = self;
-
-    vendorHash = "sha256-ms8G6uXrp32zzE4fYfEqlo9Exfp2DnwUsq+BCyasJRg=";
-    goDeps = ./go.mod;
-
-    meta = with pkgs.lib; {
-      description = "an LLM interface for NixOS";
-      homepage = "https://github.com/jaketrock/sublet";
-      mainProgram = "sublet";
-    };
-  };
-
   config = mkIf config.services.subletd.enable {
+    nixpkgs.packages.sublet-go = pkgs.buildGoModule {
+      pname = "sublet";
+      version = self.rev or "unknown";
+      src = self;
+
+      vendorHash = "sha256-ms8G6uXrp32zzE4fYfEqlo9Exfp2DnwUsq+BCyasJRg=";
+      goDeps = ./go.mod;
+
+      meta = with pkgs.lib; {
+        description = "an LLM interface for NixOS";
+        homepage = "https://github.com/jaketrock/sublet";
+        mainProgram = "sublet";
+      };
+    };
+
     systemd.services.subletd = {
       description = "A service that runs the sublet daemon";
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
-        ExecStart = "${pkgs.sublet-go}/bin/sublet ${config.services.subletd.userId}";
+        ExecStart = "${config.nixpkgs.packages.sublet-go}/bin/sublet ${config.services.subletd.userId}";
       };
     };
 
-    # Package the Go program
-    environment.systemPackages = [ packages.sublet-go ];
+    environment.systemPackages = [ config.nixpkgs.packages.sublet-go ];
   };
 }
 

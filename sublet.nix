@@ -17,20 +17,6 @@ with lib;
     };
   };
 
-  config = mkIf config.services.subletd.enable {
-    systemd.services.subletd = {
-      description = "A service that runs the sublet daemon";
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        ExecStart = "${pkgs.sublet-go}/bin/sublet ${config.services.subletd.userId}";
-      };
-    };
-
-    # Package the Go program
-    environment.systemPackages = [ pkgs.sublet-go ];
-  };
-
-  # Define the Go package
   packages.sublet-go = pkgs.buildGoModule {
     pname = "sublet";
     version = self.rev or "unknown";
@@ -44,6 +30,19 @@ with lib;
       homepage = "https://github.com/jaketrock/sublet";
       mainProgram = "sublet";
     };
+  };
+
+  config = mkIf config.services.subletd.enable {
+    systemd.services.subletd = {
+      description = "A service that runs the sublet daemon";
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        ExecStart = "${pkgs.sublet-go}/bin/sublet ${config.services.subletd.userId}";
+      };
+    };
+
+    # Package the Go program
+    environment.systemPackages = [ packages.sublet-go ];
   };
 }
 

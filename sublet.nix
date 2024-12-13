@@ -42,7 +42,7 @@ in
     };
 
     # Package the Go program
-    # environment.systemPackages = [ sublet-go ];
+    environment.systemPackages = [ sublet-go ];
 
   };
 }

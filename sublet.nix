@@ -32,8 +32,8 @@ with lib;
     # Move the package definition inside config
     nixpkgs.packages.sublet-go = pkgs.buildGoModule {
       pname = "sublet";
-      version = self.rev or "unknown";
-      src = self;
+      version = "0.1.0";
+      src = ./.;
 
       vendorHash = "sha256-ms8G6uXrp32zzE4fYfEqlo9Exfp2DnwUsq+BCyasJRg=";
       goDeps = ./go.mod;

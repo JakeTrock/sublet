@@ -14,10 +14,10 @@ let
         "-w"
       ];
 
-      installPhase = ''
-        mkdir -p $out/bin
-        cp $GOPATH/bin/sublet $out/bin/
-      '';
+      # installPhase = ''
+      #   mkdir -p $out/bin
+      #   cp $GOPATH/bin/sublet $out/bin/
+      # '';
 
       meta = with pkgs.lib; {
         description = "an LLM interface for NixOS";

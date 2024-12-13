@@ -8,7 +8,16 @@ let
       src = ./.;
 
       vendorHash = "sha256-ms8G6uXrp32zzE4fYfEqlo9Exfp2DnwUsq+BCyasJRg=";
-      goDeps = ./go.mod;
+      CGO_ENABLED = "0";
+      ldflags = [
+        "-s"
+        "-w"
+      ];
+
+      installPhase = ''
+        mkdir -p $out/bin
+        cp $GOPATH/bin/sublet $out/bin/
+      '';
 
       meta = with pkgs.lib; {
         description = "an LLM interface for NixOS";
@@ -38,10 +47,12 @@ in
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         ExecStart = "${sublet-go}/bin/sublet ${config.services.subletd.userId}";
+        Type = "simple";
+        Restart = "always";
+        RestartSec = "10";
       };
     };
 
-    # Package the Go program
     environment.systemPackages = [ sublet-go ];
 
   };

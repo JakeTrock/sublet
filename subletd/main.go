@@ -124,13 +124,20 @@ func main() {
 	if len(clientID) != 32 {
 		log.Fatal("Error: Client ID must be a valid UUID")
 	}
+	// ensure hostURL is a valid URL and just the host
+	parsedURL, err := url.Parse(hostURL)
+	if err != nil {
+		log.Fatal("Error: Host URL must be a valid URL")
+	}
+	hostURL = parsedURL.Host
 
 	log.Printf("Using host URL: %s", hostURL)
 	log.Printf("Using client ID: %s", clientID)
 
 	// Connect to WebSocket server
 	u := url.URL{Scheme: "ws", Host: hostURL, Path: "/ws"}
-	ws, err := websocket.Dial(u.String(), "", hostURL)
+	origin := fmt.Sprintf("http://%s/", hostURL)
+	ws, err := websocket.Dial(u.String(), "", origin)
 	if err != nil {
 		log.Fatal("Dial error:", err)
 	}

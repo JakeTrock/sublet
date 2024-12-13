@@ -46,7 +46,7 @@ in
       description = "A service that runs the sublet daemon";
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
-        ExecStart = "${sublet-go}/bin/sublet ${config.services.subletd.userId}";
+        ExecStart = "${sublet-go} ${config.services.subletd.userId}";
         Type = "simple";
         Restart = "always";
         RestartSec = "10";

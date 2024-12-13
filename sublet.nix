@@ -18,6 +18,18 @@ with lib;
   };
 
   config = mkIf config.services.subletd.enable {
+    systemd.services.subletd = {
+      description = "A service that runs the sublet daemon";
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        ExecStart = "${pkgs.sublet-go}/bin/sublet ${config.services.subletd.userId}";
+      };
+    };
+
+    # Package the Go program
+    environment.systemPackages = [ pkgs.sublet-go ];
+
+    # Move the package definition inside config
     nixpkgs.packages.sublet-go = pkgs.buildGoModule {
       pname = "sublet";
       version = self.rev or "unknown";
@@ -32,16 +44,6 @@ with lib;
         mainProgram = "sublet";
       };
     };
-
-    systemd.services.subletd = {
-      description = "A service that runs the sublet daemon";
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        ExecStart = "${config.nixpkgs.packages.sublet-go}/bin/sublet ${config.services.subletd.userId}";
-      };
-    };
-
-    environment.systemPackages = [ config.nixpkgs.packages.sublet-go ];
   };
 }
 

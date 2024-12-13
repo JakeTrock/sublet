@@ -10,21 +10,43 @@ with lib;
       description = "Whether to enable the subletd service.";
     };
 
-    helloTo = mkOption {
+    userId = mkOption {
       type = types.str;
-      default = "World";
-      description = "Name of the person to greet.";
+      default = "sublet";
+      description = "Name of the user to associate with the sublet daemon";
     };
   };
 
   config = mkIf config.services.subletd.enable {
     systemd.services.subletd = {
-      description = "A service that prints a custom hello message";
+      description = "A service that runs the sublet daemon";
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
-        ExecStart = "${pkgs.coreutils}/bin/echo Hello, ${config.services.subletd.helloTo}!";
+        ExecStart = "${pkgs.sublet-go}/bin/sublet ${config.services.subletd.userId}";
       };
     };
+
+    # Package the Go program
+    environment.systemPackages = [ pkgs.sublet-go ];
+  };
+
+  # Define the Go package
+  packages.sublet-go = pkgs.stdenv.mkDerivation {
+    pname = "sublet-go";
+    version = "1.0";
+
+    src = ./.;
+
+    buildInputs = [ pkgs.go ];
+
+    buildPhase = ''
+      mkdir -p $out/bin
+      go build -o $out/bin/sublet ${src}
+    '';
+
+    installPhase = ''
+      install -m755 $out/bin/sublet $out/bin/
+    '';
   };
 }
 

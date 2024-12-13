@@ -31,40 +31,20 @@ with lib;
   };
 
   # Define the Go package
-  packages.sublet-go = pkgs.stdenv.mkDerivation {
-    pname = "sublet-go";
-    version = "1.0";
+  packages.sublet-go = pkgs.buildGoModule {
+    pname = "sublet";
+    version = self.rev or "unknown";
+    src = self;
 
-    src = ./.;
+    vendorHash = "sha256-ms8G6uXrp32zzE4fYfEqlo9Exfp2DnwUsq+BCyasJRg=";
+    goDeps = ./go.mod;
 
-    buildInputs = [ pkgs.go ];
-
-    buildPhase = ''
-      mkdir -p $out/bin
-      go build -o $out/bin/sublet ${src}
-    '';
-
-    installPhase = ''
-      install -m755 $out/bin/sublet $out/bin/
-    '';
+    meta = with pkgs.lib; {
+      description = "an LLM interface for NixOS";
+      homepage = "https://github.com/jaketrock/sublet";
+      mainProgram = "sublet";
+    };
   };
 }
-
-
-# packages.sublet = pkgs.buildGoModule {
-# 					pname = "sublet";
-# 					version = self.rev or "unknown";
-# 					src = self;
-
-# 					vendorHash = "sha256-ms8G6uXrp32zzE4fYfEqlo9Exfp2DnwUsq+BCyasJRg=";
-# 					goDeps = ./go.mod;
-
-# 					meta = with pkgs.lib; {
-# 						description = "an LLM interface for NixOS";
-# 						homepage = "https://github.com/jaketrock/sublet";
-# 						mainProgram = "sublet";
-# 					};
-# 				};
-# }
 
 # https://mtlynch.io/notes/nix-import-from-url/

@@ -108,15 +108,10 @@ func handleCapabilityCommand(command string, files map[string]string) (string, e
 
 func main() {
 	if len(os.Args) < 3 {
-		log.Fatal("Error: Usage: subletd <host_url> <client_id>")
+		log.Fatal("Error: Usage: subletd <client_id> <host_url> [<host_url>...]")
 	}
 
-	hostURL := strings.TrimSpace(os.Args[1])
-	if hostURL == "" {
-		log.Fatal("Error: Host URL cannot be empty")
-	}
-
-	clientID := strings.TrimSpace(os.Args[2])
+	clientID := strings.TrimSpace(os.Args[1])
 	if clientID == "" {
 		log.Fatal("Error: Client ID cannot be empty")
 	}
@@ -124,25 +119,52 @@ func main() {
 	if len(clientID) != 32 {
 		log.Fatal("Error: Client ID must be a valid UUID")
 	}
-	// ensure hostURL is a valid URL and just the host
-	parsedURL, err := url.Parse(hostURL)
-	if err != nil {
-		log.Fatal("Error: Host URL must be a valid URL")
-	}
-	hostURL = parsedURL.Host
 
-	log.Printf("Using host URL: %s", hostURL)
 	log.Printf("Using client ID: %s", clientID)
 
-	// Connect to WebSocket server
-	u := url.URL{Scheme: "ws", Host: hostURL, Path: "/ws"}
-	origin := fmt.Sprintf("http://%s/", hostURL)
-	ws, err := websocket.Dial(u.String(), "", origin)
-	if err != nil {
-		log.Fatal("Dial error:", err)
-	}
-	defer ws.Close()
+	// Try each host URL in sequence until one works
+	var lastErr error
+	for _, rawHostURL := range os.Args[2:] {
+		hostURL := strings.TrimSpace(rawHostURL)
+		if hostURL == "" {
+			continue
+		}
 
+		// ensure hostURL is a valid URL and just the host
+		parsedURL, err := url.Parse(hostURL)
+		if err != nil {
+			log.Printf("Warning: Invalid host URL %s: %v", hostURL, err)
+			lastErr = err
+			continue
+		}
+		hostURL = parsedURL.Host
+
+		log.Printf("Trying host URL: %s", hostURL)
+
+		// Connect to WebSocket server
+		u := url.URL{Scheme: "ws", Host: hostURL, Path: "/ws"}
+		origin := fmt.Sprintf("http://%s/", hostURL)
+		ws, err := websocket.Dial(u.String(), "", origin)
+		if err != nil {
+			log.Printf("Warning: Failed to connect to %s: %v", hostURL, err)
+			lastErr = err
+			continue
+		}
+		defer ws.Close()
+
+		// If we get here, we successfully connected
+		log.Printf("Successfully connected to %s", hostURL)
+
+		// Rest of the connection handling code...
+		handleConnection(ws, clientID)
+		return
+	}
+
+	// If we get here, none of the URLs worked
+	log.Fatal("Error: Failed to connect to any host. Last error: ", lastErr)
+}
+
+func handleConnection(ws *websocket.Conn, clientID string) {
 	// Set up channels
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)

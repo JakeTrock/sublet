@@ -1,4 +1,4 @@
-module libdb.so/subletd
+module trock.com/subletd
 
 go 1.23
 

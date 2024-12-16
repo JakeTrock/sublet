@@ -2,13 +2,14 @@ import WebSocket from 'ws';
 import express from 'express';
 import { createServer } from 'http';
 import path from 'path';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import { exec } from 'child_process';
 import util from 'util';
+import { Pool } from 'pg';
+import { promisify } from 'util';
+import { exec as execCallback } from 'child_process';
 
 const app = express();
 const server = createServer(app);
@@ -17,7 +18,13 @@ const wss = new WebSocket.Server({
   server,
   path: '/ws'
 });
+
+// Add new promisified exec
+const execAsync = util.promisify(exec);
+
+// Initialize options table
 const channels = ["nixos-23.05", "nixos-23.11", "nixos-24.05", "nixos-unstable"];
+
 
 // Enable JSON body parsing
 app.use(express.json());
@@ -32,28 +39,67 @@ type ClientType = 'go' | 'browser';
 // Modify clients to store client info
 const clients = new Map<string, Client>();
 
-// Initialize SQLite database
-let db: any;
+// Initialize PostgreSQL database
+let db: Pool;
 (async () => {
-  db = await open({
-    filename: 'clients.db',
-    driver: sqlite3.Database
+  const dbUrl = process.argv[2];
+  db = new Pool({
+    connectionString: dbUrl,
   });
 
   // Create clients table if it doesn't exist
-  await db.exec(`
+  await db.query(`
     CREATE TABLE IF NOT EXISTS clients (
       id TEXT PRIMARY KEY,
       client_type TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Create options table if it doesn't exist
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS options (
+      id SERIAL PRIMARY KEY,
+      attribute_name TEXT,
+      name TEXT,
+      license TEXT,
+      long_description TEXT,
+      example TEXT,
+      default_value TEXT,
+      type TEXT,
+      channel TEXT
+    )
+  `);
+
+  for (const channel of channels) {
+    const { stdout } = await execAsync(`nix-build '<nixpkgs/nixos/release.nix>' --no-out-link -A options -I nixpkgs=channel:${channel}`);
+    const outPath = stdout.trim();
+    const optionsData = JSON.parse(await fs.readFile(`${outPath}/share/doc/nixos/options.json`, 'utf-8'));
+    const optionsEntries = Object.entries(optionsData);
+
+    for (const [attrName, optionData] of optionsEntries) {
+      const searchEntry = toSearchIndexObject(attrName, optionData);
+      await db.query(`
+        INSERT INTO options (attribute_name, name, license, long_description, example, default_value, type, channel)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `, [
+        searchEntry.attribute_name,
+        searchEntry.name,
+        searchEntry.license,
+        searchEntry.long_description,
+        searchEntry.example,
+        searchEntry.default,
+        searchEntry.type,
+        channel
+      ]);
+    }
+  }
 })();
 
 // Add new routes
 app.get('/clients', async (req, res) => {
   try {
-    const rows = await db.all('SELECT * FROM clients');
+    const { rows } = await db.query('SELECT * FROM clients');
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch clients' });
@@ -163,8 +209,7 @@ app.get('/go-clients', async (req, res) => {
   }
 });
 
-// Add new promisified exec
-const execAsync = util.promisify(exec);
+
 
 // Add new type definition for package search
 type PackageSearchMessage = {
@@ -175,27 +220,20 @@ type PackageSearchMessage = {
 
 app.get('/search-options/:query', async (req, res) => {
   const { query } = req.params;
+  const { channel } = req.query;
 
   try {
-    const channel = "nixos-unstable"; // or whichever channel you want to search
-    const db = await open({
-      filename: `options-${channel}.db`,
-      driver: sqlite3.Database
-    });
-
-    const rows = await db.all(`
+    const { rows } = await db.query(`
       SELECT 
         attribute_name,
         name,
         long_description,
         example,
-        \`default\`,
+        default_value,
         type
       FROM options 
-      WHERE options MATCH ?
-    `, query);
-
-    await db.close();
+      WHERE options MATCH $1 AND channel = $2
+    `, [query, channel]);
 
     if (rows.length === 0) {
       return res.status(404).json({ error: 'No matching options found' });
@@ -290,8 +328,8 @@ wss.on('connection', async (ws, req) => {
         
         // Update database
         try {
-          await db.run(
-            'INSERT OR REPLACE INTO clients (id, client_type) VALUES (?, ?)', 
+          await db.query(
+            'INSERT INTO clients (id, client_type) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET client_type = $2',
             [clientId, clientType]
           );
         } catch (error) {
@@ -330,7 +368,7 @@ wss.on('connection', async (ws, req) => {
         
         // Remove from database
         try {
-          await db.run('DELETE FROM clients WHERE id = ?', id);
+          await db.query('DELETE FROM clients WHERE id = $1', [id]);
         } catch (error) {
           console.error('Error removing client from database:', error);
         }
@@ -459,6 +497,35 @@ Each line typically contains: package name, version, and description.
   } catch (error) {
     console.error('Error processing message:', error);
   }
+}
+
+function attributeByPath(obj: any, path: string[], def: any) {
+  return path.reduce((acc: any, key: string) => (acc[key] || def), obj);
+}
+
+function toSearchIndexObject(attrname: string, obj: any) {
+  const i = {
+    attribute_name: attrname,
+    name: obj.name,
+    license: attributeByPath(obj, ["meta", "license", "shortName"], "n/a"),
+    long_description: obj.meta?.longDescription,
+    example: attributeByPath(obj, ["example", "text"], "n/a"),
+    default: attributeByPath(obj, ["default", "text"], "n/a"),
+    type: attributeByPath(obj, ["type"], "n/a"),
+  };
+
+  if (obj.meta && obj.meta.longDescription)
+    i.long_description = obj.meta.longDescription;
+
+  if (obj.meta && obj.meta.license) {
+    const l = obj.meta.license;
+    if (l.shortName) {
+      i.license = l.shortName;
+    } else {
+      i.license = l;
+    }
+  }
+  return i;
 }
 
 server.listen(PORT, () => {

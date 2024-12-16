@@ -23,7 +23,7 @@ let
     '';
 
     meta = with pkgs.lib; {
-      description = "an LLM interface for NixOS";
+      description = "A service that runs the sublet coordinator";
       homepage = "https://github.com/jaketrock/sublet";
     };
   };
@@ -41,12 +41,6 @@ in
       default = "postgresql://postgres:postgres@localhost:5432/sublet";
       description = "The URL of the db to connect to";
     };
-
-    userId = mkOption {
-      type = types.str;
-      default = "sublet";
-      description = "Name of the user to associate with the sublet daemon";
-    };
   };
 
   config = mkIf config.services.subletd.enable {
@@ -54,7 +48,7 @@ in
       description = "A service that runs the sublet coordinator";
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
-        ExecStart = "${sublet-node}/bin/server.js ${config.services.subletd.userId} ${config.services.subletd.hostUrl}";
+        ExecStart = "${sublet-node}/bin/server.js ${config.services.subletd.dbUrl}";
         WorkingDirectory = "${sublet-node}/bin";
         Type = "simple";
         Restart = "always";

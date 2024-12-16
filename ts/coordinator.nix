@@ -29,35 +29,97 @@ let
   };
 in
 {
-  options.services.subletd = {
+  options.services.subletCoordinator = {
     enable = mkOption {
       type = types.bool;
       default = false;
       description = "Whether to enable the sublet coordinator service.";
     };
 
-    dbUrl = mkOption {
+    user = mkOption {
       type = types.str;
-      default = "postgresql://postgres:postgres@localhost:5432/sublet";
-      description = "The URL of the db to connect to";
+      default = "sublet";
+      description = "User account under which sublet runs.";
+    };
+
+    group = mkOption {
+      type = types.str;
+      default = "sublet";
+      description = "Group under which sublet runs.";
+    };
+
+    dbName = mkOption {
+      type = types.str;
+      default = "sublet";
+      description = "Name of the PostgreSQL database.";
+    };
+
+    dbUser = mkOption {
+      type = types.str;
+      default = "sublet";
+      description = "PostgreSQL user for sublet.";
+    };
+
+    dbPassword = mkOption {
+      type = types.str;
+      default = "sublet";
+      description = "PostgreSQL password for sublet user.";
     };
   };
 
-  config = mkIf config.services.subletd.enable {
-    systemd.services.subletd = {
-      description = "A service that runs the sublet coordinator";
+  config = mkIf config.services.subletCoordinator.enable {
+    # Create system user and group
+    users.users.${config.services.subletCoordinator.user} = {
+      isSystemUser = true;
+      group = config.services.subletCoordinator.group;
+      description = "Sublet coordinator service user";
+    };
+
+    users.groups.${config.services.subletCoordinator.group} = {};
+
+    # Enable and configure PostgreSQL
+    services.postgresql = {
+      enable = true;
+      ensureDatabases = [ config.services.subletCoordinator.dbName ];
+      ensureUsers = [
+        {
+          name = config.services.subletCoordinator.dbUser;
+          ensurePermissions = {
+            "DATABASE ${config.services.subletCoordinator.dbName}" = "ALL PRIVILEGES";
+          };
+        }
+      ];
+    };
+
+    # Configure systemd service
+    systemd.services.subletCoordinator = {
+      description = "Sublet coordinator service";
       wantedBy = [ "multi-user.target" ];
+      after = [ "postgresql.service" ];
+      requires = [ "postgresql.service" ];
+
       serviceConfig = {
-        ExecStart = "${sublet-node}/bin/server.js ${config.services.subletd.dbUrl}";
-        WorkingDirectory = "${sublet-node}/bin";
         Type = "simple";
+        User = config.services.subletCoordinator.user;
+        Group = config.services.subletCoordinator.group;
+        ExecStart = ''
+          ${sublet-node}/bin/server.js \
+          "postgresql://${config.services.subletCoordinator.dbUser}:${config.services.subletCoordinator.dbPassword}@localhost:5432/${config.services.subletCoordinator.dbName}"
+        '';
+        WorkingDirectory = "${sublet-node}/bin";
         Restart = "always";
         RestartSec = "10";
       };
+
+      # Set up database password
+      preStart = ''
+        if ! ${pkgs.postgresql}/bin/psql -U ${config.services.subletCoordinator.dbUser} -d ${config.services.subletCoordinator.dbName} -c '\q' 2>/dev/null; then
+          ${pkgs.postgresql}/bin/psql -U postgres -c "ALTER USER ${config.services.subletCoordinator.dbUser} WITH PASSWORD '${config.services.subletCoordinator.dbPassword}';"
+        fi
+      '';
     };
 
     environment.systemPackages = [ sublet-node ];
-
   };
 }
 

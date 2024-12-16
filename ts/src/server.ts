@@ -8,8 +8,6 @@ import { existsSync } from 'fs';
 import { exec } from 'child_process';
 import util from 'util';
 import { Pool } from 'pg';
-import { promisify } from 'util';
-import { exec as execCallback } from 'child_process';
 
 const app = express();
 const server = createServer(app);
